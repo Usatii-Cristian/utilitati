@@ -140,6 +140,33 @@ export const tools: Tool[] = [
       'Exemple gata de rulat pe LangGraph, CrewAI, AutoGen, Agno — acoperă domenii diferite (finance, retail, cybersecurity etc). Bun ca punct de plecare când vrei să construiești un agent AI și nu știi de unde să începi.',
     emoji: '🤖',
   },
+  {
+    name: 'llmfit',
+    url: 'https://github.com/AlexsJones/llmfit',
+    category: 'AI Tools',
+    shortDescription: 'Îți spune ce modele LLM rulează efectiv pe hardware-ul tău.',
+    details:
+      'O singură comandă scanează CPU/GPU/RAM și îți arată, din sute de modele și provideri, ce intră la tine — acoperă GGUF, MLX și Unsloth. Bun înainte să descarci 40GB degeaba: afli din start dacă modelul încape în VRAM sau o să se târască pe CPU.',
+    emoji: '📏',
+  },
+  {
+    name: 'OpenLLM',
+    url: 'https://github.com/bentoml/OpenLLM',
+    category: 'AI Tools',
+    shortDescription: 'Rulează orice LLM open-source ca API compatibil OpenAI.',
+    details:
+      'Pornești Llama, DeepSeek sau Mistral cu o comandă și primești un endpoint identic cu cel OpenAI — codul existent merge neschimbat, doar schimbi base URL-ul. Bun când vrei să scapi de costul per token sau să ții datele pe infrastructura ta.',
+    emoji: '🦙',
+  },
+  {
+    name: 'Hermes Agent',
+    url: 'https://github.com/NousResearch/hermes-agent',
+    category: 'AI Tools',
+    shortDescription: 'Agent AI de la Nous Research care își păstrează contextul între sesiuni.',
+    details:
+      'Agent care ține minte ce ai lucrat și se adaptează la felul tău de a lucra, cu suport pentru mai mulți provideri (OpenAI, Anthropic etc). Bun ca alternativă self-hosted la agenții closed-source, când vrei control pe prompturi și pe memoria agentului.',
+    emoji: '🧠',
+  },
 
   // ── Dev Tools ──────────────────────────────────────────────────────────────
   {
@@ -177,6 +204,24 @@ export const tools: Tool[] = [
     details:
       'Bune practici cu ViewModel, LiveData, Room pentru diverse abordări de structurare a codului. Util doar dacă faci și Android nativ, ca referință.',
     emoji: '🤖',
+  },
+  {
+    name: 'Tesseract.js',
+    url: 'https://github.com/naptha/tesseract.js',
+    category: 'Dev Tools',
+    shortDescription: 'OCR pur în JavaScript, 100+ limbi, rulează direct în browser.',
+    details:
+      'Extragi text din imagini și scan-uri direct în browser sau în Node, prin WebAssembly — fără server, fără API plătit, fără să trimiți pozele nicăieri. Bun când vrei să citești automat facturi, bonuri sau screenshot-uri într-o aplicație web.',
+    emoji: '🔤',
+  },
+  {
+    name: 'Awesome Cloudflare',
+    url: 'https://github.com/zhuima/awesome-cloudflare',
+    category: 'Dev Tools',
+    shortDescription: 'Listă curată de tool-uri și proiecte open-source pe Cloudflare.',
+    details:
+      'Adună Workers, Pages, R2, tunnels, plus proiecte gata făcute, ghiduri și bloguri, organizate pe categorii. Bun când vrei să hostezi ceva gratuit pe edge și cauți ce a construit deja lumea, în loc să pornești de la zero.',
+    emoji: '⛅',
   },
 
   // ── Apps & Utilitare ───────────────────────────────────────────────────────
@@ -233,6 +278,24 @@ export const tools: Tool[] = [
     details:
       'Multi-track, keyframes, timp real, salvează proiectele local, procesarea se face în browser. Bun pentru editări video rapide fără soft greu instalat.',
     emoji: '✂️',
+  },
+  {
+    name: 'Helium',
+    url: 'https://github.com/imputnet/helium',
+    category: 'Apps & Utilitare',
+    shortDescription: 'Browser Chromium curățat de telemetrie și de reclame.',
+    details:
+      'Build de Chromium fără tracking și fără servicii Google pornite din start, cu blocare de reclame inclusă; există și pentru Windows, și pentru macOS. Bun ca browser zilnic dacă vrei intimitate reală, fără cripto și programe de recompense.',
+    emoji: '🎈',
+  },
+  {
+    name: 'OpenCut',
+    url: 'https://github.com/OpenCut-app/OpenCut',
+    category: 'Apps & Utilitare',
+    shortDescription: 'Alternativă open-source la CapCut, direct în browser.',
+    details:
+      'Editor video cu timeline multi-track, fără watermark, fără abonament și fără să-ți urce clipurile pe serverele nimănui. Bun pentru montaje rapide de social media, când CapCut te oprește la paywall.',
+    emoji: '🎬',
   },
 
   // ── OSINT & Research ───────────────────────────────────────────────────────
