@@ -289,6 +289,15 @@ export const tools: Tool[] = [
     emoji: '🎈',
   },
   {
+    name: 'Palmier Pro',
+    url: 'https://github.com/palmier-io/palmier-pro',
+    category: 'Apps & Utilitare',
+    shortDescription: 'Editor video nativ de macOS construit în jurul agenților AI.',
+    details:
+      'Editor scris în Swift, cu suport MCP: îi dai instrucțiuni unui agent (Claude & co.) și el operează pe timeline în locul tău, nu doar generează clipuri. Open-source, GPL-3.0. ATENȚIE: e doar pentru macOS — pe Windows nu îl poți rula; alternativa cross-platform e forkul OpenTake (Rust + Tauri).',
+    emoji: '🌴',
+  },
+  {
     name: 'OpenCut',
     url: 'https://github.com/OpenCut-app/OpenCut',
     category: 'Apps & Utilitare',
