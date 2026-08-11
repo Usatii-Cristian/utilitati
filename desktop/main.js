@@ -43,9 +43,6 @@ const TARGETS_FILE = app.isPackaged
   ? path.join(process.resourcesPath, 'local-targets.json')
   : path.join(ROOT, 'data', 'local-targets.json');
 
-/** Unde traiesc repo-urile clonate si tool-urile portabile. */
-const HUB_TOOLS = process.env.HUB_TOOLS || 'E:\\hub-tools';
-
 let targets = {};
 try {
   targets = JSON.parse(fs.readFileSync(TARGETS_FILE, 'utf8'));
@@ -54,119 +51,8 @@ try {
   console.error('Nu am putut citi local-targets.json:', error.message);
 }
 
-// ── Utilitare ───────────────────────────────────────────────────────────────
-
-/** Expandeaza %VAR% din caile declarate in JSON. */
-function expand(value) {
-  if (typeof value !== 'string') return value;
-  return value.replace(/%([^%]+)%/g, (match, name) => {
-    if (name === 'HUB_TOOLS') return HUB_TOOLS;
-    return process.env[name] ?? match;
-  });
-}
-
-/** Prima cale existenta dintr-o lista, sau null. */
-function firstExisting(paths) {
-  for (const candidate of paths ?? []) {
-    const resolved = expand(candidate);
-    try {
-      if (fs.existsSync(resolved)) return resolved;
-    } catch {
-      /* cale invalida — trecem mai departe */
-    }
-  }
-  return null;
-}
-
-/** Cauta o comanda in PATH (echivalentul lui `where`). */
-function findOnPath(command) {
-  if (!command) return null;
-  const exts = (process.env.PATHEXT || '.EXE;.CMD;.BAT').split(';');
-  for (const dir of (process.env.PATH || '').split(path.delimiter)) {
-    if (!dir) continue;
-    for (const ext of ['', ...exts]) {
-      const candidate = path.join(dir, command + ext.toLowerCase());
-      try {
-        if (fs.existsSync(candidate)) return candidate;
-      } catch {
-        /* ignoram */
-      }
-    }
-  }
-  return null;
-}
-
-/** Verifica daca un serviciu local raspunde deja pe URL-ul lui. */
-function probe(url, timeoutMs = 900) {
-  return new Promise((resolve) => {
-    let settled = false;
-    const done = (value) => {
-      if (!settled) {
-        settled = true;
-        resolve(value);
-      }
-    };
-    try {
-      const request = require('node:http').get(url, () => done(true));
-      request.on('error', () => done(false));
-      request.setTimeout(timeoutMs, () => {
-        request.destroy();
-        done(false);
-      });
-    } catch {
-      done(false);
-    }
-  });
-}
-
-// ── Status pentru fiecare tool ──────────────────────────────────────────────
-
-/**
- * @returns {Promise<Record<string, {kind:string, ready:boolean, running?:boolean,
- *   path?:string, url?:string, warn?:string, reason?:string, hint?:string}>>}
- */
-async function detectAll() {
-  const result = {};
-
-  for (const [name, target] of Object.entries(targets)) {
-    const entry = { kind: target.kind, ready: false };
-    if (target.warn) entry.warn = target.warn;
-
-    if (target.kind === 'unsupported') {
-      entry.reason = target.reason;
-      result[name] = entry;
-      continue;
-    }
-
-    if (target.kind === 'app') {
-      const exe = firstExisting(target.exe) || findOnPath(target.cli);
-      entry.ready = Boolean(exe);
-      if (exe) entry.path = exe;
-      else entry.hint = target.winget ? `winget install ${target.winget}` : target.release;
-    }
-
-    if (target.kind === 'repo') {
-      const dir = expand(target.dir);
-      entry.ready = fs.existsSync(dir);
-      entry.path = dir;
-      if (!entry.ready) entry.hint = `git clone ${target.clone}`;
-    }
-
-    if (target.kind === 'service') {
-      const dir = target.dir ? expand(target.dir) : null;
-      entry.url = target.url;
-      entry.path = dir ?? undefined;
-      entry.running = await probe(target.url);
-      // "ready" = putem porni serviciul (avem sursele) sau deja ruleaza
-      entry.ready = entry.running || (dir ? fs.existsSync(dir) : false);
-      if (!entry.ready) entry.hint = target.clone ? `git clone ${target.clone}` : target.setup;
-    }
-
-    result[name] = entry;
-  }
-
-  return result;
-}
+// Aceleasi functii pe care le verific cu `node desktop/detect.js` — fara duplicat.
+const { detectAll, expand, firstExisting, findOnPath, appxInstalled, probe } = require('./detect.js');
 
 // ── Lansare ─────────────────────────────────────────────────────────────────
 
@@ -183,6 +69,16 @@ async function launch(name) {
     if (!exe) return { ok: false, error: 'Nu e instalat inca.', hint: target.winget };
     spawn(exe, target.args ?? [], { detached: true, stdio: 'ignore' }).unref();
     return { ok: true, action: 'launched', path: exe };
+  }
+
+  if (target.kind === 'appx') {
+    if (!appxInstalled(target.appId)) return { ok: false, error: 'Nu e instalat inca.' };
+    // singura cale suportata de a porni un pachet MSIX din afara
+    spawn('explorer.exe', [`shell:AppsFolder\\${target.appId}`], {
+      detached: true,
+      stdio: 'ignore',
+    }).unref();
+    return { ok: true, action: 'launched-appx', path: target.appId };
   }
 
   if (target.kind === 'repo') {
@@ -316,7 +212,7 @@ async function createWindow() {
 
 // ── IPC ─────────────────────────────────────────────────────────────────────
 
-ipcMain.handle('hub:detect', () => detectAll());
+ipcMain.handle('hub:detect', () => detectAll(targets));
 ipcMain.handle('hub:launch', (_event, name) => launch(String(name)));
 ipcMain.handle('hub:open-external', (_event, url) => {
   if (typeof url === 'string' && /^https?:\/\//.test(url)) shell.openExternal(url);

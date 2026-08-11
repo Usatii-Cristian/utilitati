@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 /** Ce raporteaza procesul Electron despre un tool instalat local. */
 export interface LocalStatus {
-  kind: 'app' | 'repo' | 'service' | 'unsupported';
+  kind: 'app' | 'appx' | 'repo' | 'service' | 'unsupported';
   /** Poate fi lansat acum (instalat / clonat / deja pornit). */
   ready: boolean;
   /** Doar pentru servicii: raspunde deja pe URL-ul lui. */

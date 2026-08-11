@@ -18,11 +18,12 @@
   },
   "Helium": {
     "kind": "app",
+    "_nota": "Helium e Chromium, deci executabilul se numeste chrome.exe",
     "exe": [
-      "%LOCALAPPDATA%/Helium/Application/helium.exe",
-      "%ProgramFiles%/Helium/Application/helium.exe"
+      "%LOCALAPPDATA%/imput/Helium/Application/chrome.exe",
+      "%ProgramFiles%/imput/Helium/Application/chrome.exe"
     ],
-    "release": "https://github.com/imputnet/helium-windows/releases/latest"
+    "winget": "ImputNet.Helium"
   },
   "Kodi (XBMC)": {
     "kind": "app",
@@ -30,11 +31,9 @@
     "winget": "XBMCFoundation.Kodi"
   },
   "Seelen UI": {
-    "kind": "app",
-    "exe": [
-      "%LOCALAPPDATA%/Programs/seelen-ui/seelen-ui.exe",
-      "%LOCALAPPDATA%/seelen-ui/seelen-ui.exe"
-    ],
+    "kind": "appx",
+    "_nota": "Pachet MSIX in WindowsApps (cale protejata) — se lanseaza prin shell:AppsFolder",
+    "appId": "Seelen.SeelenUI_p6yyn03m1894e!App",
     "winget": "Seelen.SeelenUI"
   },
   "FileExplorer": {
@@ -51,11 +50,13 @@
 
   "Meetily": {
     "kind": "app",
-    "exe": [
-      "%LOCALAPPDATA%/Programs/meetily/meetily.exe",
-      "%ProgramFiles%/Meetily/meetily.exe"
-    ],
+    "exe": ["%ProgramFiles%/meetily/meetily.exe", "%LOCALAPPDATA%/Programs/meetily/meetily.exe"],
     "release": "https://github.com/Zackriya-Solutions/meetily/releases/latest"
+  },
+  "AutoSubs": {
+    "kind": "app",
+    "exe": ["%LOCALAPPDATA%/AutoSubs/autosubs.exe"],
+    "release": "https://github.com/tmoroney/auto-subs/releases/latest"
   },
   "OfficeCLI": {
     "kind": "app",
@@ -124,11 +125,15 @@
     "requires": "docker",
     "warn": "Cere GPU + Docker; pe masina asta nu e practicabil."
   },
-  "AutoSubs": {
+  "gstack": {
     "kind": "repo",
-    "dir": "%HUB_TOOLS%/auto-subs",
-    "clone": "https://github.com/tmoroney/auto-subs.git",
-    "release": "https://github.com/tmoroney/auto-subs/releases/latest"
+    "dir": "%HUB_TOOLS%/gstack",
+    "clone": "https://github.com/garrytan/gstack.git"
+  },
+  "caveman": {
+    "kind": "repo",
+    "dir": "%HUB_TOOLS%/caveman",
+    "clone": "https://github.com/JuliusBrussee/caveman.git"
   },
   "Remove-AI-Watermarks": {
     "kind": "repo",

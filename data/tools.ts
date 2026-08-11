@@ -141,6 +141,24 @@ export const tools: Tool[] = [
     emoji: '🤖',
   },
   {
+    name: 'gstack',
+    url: 'https://github.com/garrytan/gstack',
+    category: 'AI Tools',
+    shortDescription: 'Setup-ul complet de Claude Code al lui Garry Tan — 23 de tool-uri.',
+    details:
+      'Un set de agenți cu roluri clare: CEO, designer, eng manager, release manager, doc engineer și QA, care lucrează împreună pe același proiect. Bun când vrei un flux de lucru gata gândit în loc să-ți construiești singur prompturile și rolurile.',
+    emoji: '🧱',
+  },
+  {
+    name: 'caveman',
+    url: 'https://github.com/JuliusBrussee/caveman',
+    category: 'AI Tools',
+    shortDescription: 'Taie 65% din tokeni scriind pe scurt, ca omul cavernelor.',
+    details:
+      'Skill de Claude Code care comprimă promptul eliminând gramatica previzibilă și păstrând doar informația: „why use many token when few token do trick". Bun când lucrezi pe contexte mari și vrei să scazi costul fără să pierzi sensul.',
+    emoji: '🪨',
+  },
+  {
     name: 'Colibri',
     url: 'https://github.com/JustVugg/colibri',
     category: 'AI Tools',
