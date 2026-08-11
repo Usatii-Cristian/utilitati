@@ -6,6 +6,7 @@ import { CategoryFilter } from '@/components/CategoryFilter';
 import { DetailsPopover } from '@/components/DetailsPopover';
 import { SearchBar } from '@/components/SearchBar';
 import { ToolGrid } from '@/components/ToolGrid';
+import { useLocalStatus } from '@/lib/desktop';
 import { readJSON, STORAGE_KEYS, writeJSON } from '@/lib/storage';
 import {
   ALL_CATEGORIES,
@@ -40,6 +41,7 @@ export function Hub() {
   const [restored, setRestored] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const { isDesktop, statuses } = useLocalStatus();
 
   // ── Restaurare din localStorage (inainte de primul paint dupa hidratare) ────
   useIsomorphicLayoutEffect(() => {
@@ -127,6 +129,12 @@ export function Hub() {
 
   const visible = useMemo(() => selectTools(query, category, pinned), [query, category, pinned]);
 
+  /** Cate tool-uri pot fi lansate chiar acum de pe masina asta. */
+  const readyCount = useMemo(
+    () => Object.values(statuses).filter((status) => status.ready).length,
+    [statuses],
+  );
+
   return (
     <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-[1400px] flex-col px-4 pb-14 sm:px-6 lg:px-8">
       <header className="sticky top-0 z-30 -mx-4 bg-ink-950/80 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-xl sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
@@ -143,7 +151,16 @@ export function Hub() {
           </a>
 
           <p className="hidden font-mono text-[10px] uppercase tracking-[0.2em] text-chalk-700 sm:block">
-            {pinned.size > 0 ? `${pinned.size} fixate` : 'fără fricțiune'}
+            {isDesktop ? (
+              <>
+                <span className="text-acid">{readyCount}</span> gata local
+                {pinned.size > 0 ? ` · ${pinned.size} fixate` : ''}
+              </>
+            ) : pinned.size > 0 ? (
+              `${pinned.size} fixate`
+            ) : (
+              'fără fricțiune'
+            )}
           </p>
         </div>
 
@@ -171,6 +188,7 @@ export function Hub() {
         <ToolGrid
           tools={visible}
           pinned={pinned}
+          statuses={statuses}
           onTogglePin={togglePin}
           onOpenDetails={setActiveTool}
           query={query}

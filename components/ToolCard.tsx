@@ -5,6 +5,7 @@ import { useCallback, useState, type MouseEvent as ReactMouseEvent } from 'react
 
 import { ArrowUpRightIcon, CheckIcon, CopyIcon, InfoIcon, StarIcon } from '@/components/icons';
 import { accentFor } from '@/data/tools';
+import { launchTool, openUrl, type LocalStatus } from '@/lib/desktop';
 import { copyToClipboard } from '@/lib/storage';
 import { faviconUrl, type HubTool } from '@/lib/tools';
 
@@ -13,6 +14,8 @@ interface ToolCardProps {
   /** Pozitia in grid — da stagger-ul la aparitie. */
   index: number;
   pinned: boolean;
+  /** Starea locala (doar in aplicatia desktop); lipseste in browser. */
+  status?: LocalStatus;
   onTogglePin: (id: string) => void;
   onOpenDetails: (tool: HubTool) => void;
 }
@@ -44,14 +47,49 @@ function Favicon({ tool }: { tool: HubTool }) {
   );
 }
 
-export function ToolCard({ tool, index, pinned, onTogglePin, onOpenDetails }: ToolCardProps) {
+/** Eticheta scurta pentru starea locala, afisata sub numele tool-ului. */
+function statusLabel(status: LocalStatus | undefined): { text: string; live: boolean } | null {
+  if (!status) return null;
+  if (status.kind === 'unsupported') return { text: 'nu merge pe Windows', live: false };
+  if (status.kind === 'service') {
+    if (status.running) return { text: 'pornit', live: true };
+    return status.ready ? { text: 'pornește serviciul', live: true } : { text: 'neinstalat', live: false };
+  }
+  if (status.kind === 'repo') {
+    return status.ready ? { text: 'deschide folderul', live: true } : { text: 'neclonat', live: false };
+  }
+  return status.ready ? { text: 'lansează', live: true } : { text: 'neinstalat', live: false };
+}
+
+export function ToolCard({
+  tool,
+  index,
+  pinned,
+  status,
+  onTogglePin,
+  onOpenDetails,
+}: ToolCardProps) {
   const reduceMotion = useReducedMotion();
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const accent = accentFor(tool.category);
 
-  const open = useCallback(() => {
-    window.open(tool.url, '_blank', 'noopener,noreferrer');
-  }, [tool.url]);
+  const label = statusLabel(status);
+  const canLaunch = Boolean(status?.ready) && status?.kind !== 'unsupported';
+
+  /** Click pe card: lanseaza local daca se poate, altfel deschide pagina. */
+  const activate = useCallback(async () => {
+    setError(null);
+    if (!canLaunch) {
+      openUrl(tool.url);
+      return;
+    }
+    const result = await launchTool(tool.name);
+    if (!result.ok) {
+      setError(result.error ?? 'Nu am putut lansa.');
+      window.setTimeout(() => setError(null), 4000);
+    }
+  }, [canLaunch, tool.name, tool.url]);
 
   const handleCopy = useCallback(
     async (event: ReactMouseEvent) => {
@@ -88,17 +126,20 @@ export function ToolCard({ tool, index, pinned, onTogglePin, onOpenDetails }: To
       style={{ '--accent': accent } as React.CSSProperties}
       role="link"
       tabIndex={0}
-      aria-label={`${tool.name} — deschide ${tool.host} într-un tab nou`}
-      onClick={open}
+      aria-label={
+        canLaunch
+          ? `${tool.name} — ${label?.text} local`
+          : `${tool.name} — deschide ${tool.host} într-un tab nou`
+      }
+      onClick={activate}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
-          open();
+          void activate();
         }
       }}
       className="group relative flex cursor-pointer select-none flex-col overflow-hidden rounded-card border border-white/[0.075] bg-white/[0.024] p-3 transition-[border-color,box-shadow,background-color] duration-300 hover:border-[color:var(--accent)]/45 hover:bg-white/[0.04] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.03),0_18px_50px_-24px_var(--accent)] sm:p-4"
     >
-      {/* Blush de accent in coltul din stanga-sus, apare la hover */}
       <span
         aria-hidden
         className="pointer-events-none absolute -left-10 -top-10 h-28 w-28 rounded-full opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-30"
@@ -114,50 +155,86 @@ export function ToolCard({ tool, index, pinned, onTogglePin, onOpenDetails }: To
       )}
 
       <header className="relative flex items-start gap-2 pr-[56px] sm:gap-2.5 sm:pr-[54px]">
-        <Favicon tool={tool} />
+        <div className="relative shrink-0">
+          <Favicon tool={tool} />
+          {canLaunch && (
+            <span
+              aria-hidden
+              className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-ink-950"
+              style={{ background: accent }}
+            />
+          )}
+        </div>
         <div className="min-w-0 flex-1">
           <h3 className="text-[13.5px] font-semibold leading-tight tracking-[-0.01em] text-chalk-100 sm:text-[15px]">
             {tool.name}
           </h3>
-          <p className="mt-1 flex items-center gap-1 font-mono text-[10px] text-chalk-700 transition-colors group-hover:text-[color:var(--accent)] sm:text-[10.5px]">
-            <span className="truncate">{tool.host}</span>
-            <ArrowUpRightIcon className="h-3 w-3 shrink-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+          <p className="mt-1 flex items-center gap-1 font-mono text-[10px] transition-colors sm:text-[10.5px]">
+            {label ? (
+              <span
+                className={label.live ? 'truncate font-medium' : 'truncate text-chalk-700'}
+                style={label.live ? { color: accent } : undefined}
+              >
+                {label.live ? '▸ ' : '○ '}
+                {label.text}
+              </span>
+            ) : (
+              <span className="truncate text-chalk-700 group-hover:text-[color:var(--accent)]">
+                {tool.host}
+              </span>
+            )}
+            <ArrowUpRightIcon className="h-3 w-3 shrink-0 text-chalk-700 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
           </p>
         </div>
       </header>
 
       <p className="mt-2.5 text-[12px] leading-[1.45] text-chalk-500 sm:text-[12.5px]">
-        {tool.shortDescription}
+        {error ?? tool.shortDescription}
       </p>
 
       <footer className="mt-auto flex items-center justify-between gap-2 pt-3">
         <span
           className="truncate rounded-full border px-1.5 py-[3px] font-mono text-[9px] uppercase tracking-[0.06em] sm:px-2 sm:text-[9.5px] sm:tracking-[0.1em]"
-          style={{
-            borderColor: `${accent}30`,
-            color: accent,
-            background: `${accent}0f`,
-          }}
+          style={{ borderColor: `${accent}30`, color: accent, background: `${accent}0f` }}
         >
           {tool.category}
         </span>
 
-        <button
-          type="button"
-          onClick={handleCopy}
-          aria-label={`Copiază linkul către ${tool.name}`}
-          title="Copiază link"
-          className="hover-reveal grid h-6 w-6 shrink-0 place-items-center rounded-md border border-white/[0.08] bg-white/[0.03] text-chalk-500 opacity-0 transition-all duration-200 hover:border-white/20 hover:text-chalk-100 focus-visible:opacity-100 group-hover:opacity-100 sm:h-7 sm:w-7"
-        >
-          {copied ? (
-            <CheckIcon className="h-3.5 w-3.5" style={{ color: accent }} />
-          ) : (
-            <CopyIcon className="h-3.5 w-3.5" />
+        <div className="flex shrink-0 items-center gap-1">
+          {/* In desktop, cand cardul lanseaza local, pastram si accesul la repo */}
+          {canLaunch && (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                openUrl(tool.url);
+              }}
+              aria-label={`Deschide pagina ${tool.host}`}
+              title="Deschide pagina web"
+              className="hover-reveal grid h-6 w-6 place-items-center rounded-md border border-white/[0.08] bg-white/[0.03] text-chalk-500 opacity-0 transition-all duration-200 hover:border-white/20 hover:text-chalk-100 focus-visible:opacity-100 group-hover:opacity-100 sm:h-7 sm:w-7"
+            >
+              <ArrowUpRightIcon className="h-3.5 w-3.5" />
+            </button>
           )}
-        </button>
+
+          <button
+            type="button"
+            onClick={handleCopy}
+            aria-label={`Copiază linkul către ${tool.name}`}
+            title="Copiază link"
+            className="hover-reveal grid h-6 w-6 place-items-center rounded-md border border-white/[0.08] bg-white/[0.03] text-chalk-500 opacity-0 transition-all duration-200 hover:border-white/20 hover:text-chalk-100 focus-visible:opacity-100 group-hover:opacity-100 sm:h-7 sm:w-7"
+          >
+            {copied ? (
+              <CheckIcon className="h-3.5 w-3.5" style={{ color: accent }} />
+            ) : (
+              <CopyIcon className="h-3.5 w-3.5" />
+            )}
+          </button>
+        </div>
       </footer>
 
-      {/* Actiuni care NU deschid linkul */}
+      {/* Actiuni care NU deschid/lanseaza */}
       <div className="absolute right-2 top-2 flex items-center gap-0.5">
         <button
           type="button"
@@ -174,7 +251,9 @@ export function ToolCard({ tool, index, pinned, onTogglePin, onOpenDetails }: To
         >
           <StarIcon
             filled={pinned}
-            className={pinned ? 'h-[15px] w-[15px]' : 'h-[15px] w-[15px] text-chalk-700 hover:text-chalk-300'}
+            className={
+              pinned ? 'h-[15px] w-[15px]' : 'h-[15px] w-[15px] text-chalk-700 hover:text-chalk-300'
+            }
           />
         </button>
 

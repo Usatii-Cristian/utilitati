@@ -219,3 +219,9 @@ for (const [name, buffer] of outputs) {
 const favicon = pngToIco(renderIcon(32, { rounded: true }), 32);
 writeFileSync(join(PUBLIC, 'favicon.ico'), favicon);
 console.log(`✓ public/favicon.ico  (${(favicon.length / 1024).toFixed(1)} kB)`);
+
+// electron-builder cere un ICO de minim 256x256 pentru instalerul de Windows
+mkdirSync(join(ROOT, 'build'), { recursive: true });
+const appIcon = pngToIco(renderIcon(256, { rounded: false, markScale: 0.86 }), 256);
+writeFileSync(join(ROOT, 'build', 'icon.ico'), appIcon);
+console.log(`✓ build/icon.ico  (${(appIcon.length / 1024).toFixed(1)} kB)`);

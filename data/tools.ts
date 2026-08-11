@@ -141,6 +141,33 @@ export const tools: Tool[] = [
     emoji: '🤖',
   },
   {
+    name: 'Colibri',
+    url: 'https://github.com/JustVugg/colibri',
+    category: 'AI Tools',
+    shortDescription: 'Rulează modele MoE mari pe hardware modest, streamând experții de pe disc.',
+    details:
+      'Motor scris în C pur, fără dependințe: în loc să încarce tot modelul în RAM/VRAM, citește experții de pe disc pe măsură ce are nevoie de ei. Bun exact în cazul tău — fără GPU dedicat — dar ține minte că motorul e mic (12 MB), modelul e cel care ocupă zeci de GB pe disc.',
+    emoji: '🐦',
+  },
+  {
+    name: 'claude-video',
+    url: 'https://github.com/bradautomates/claude-video',
+    category: 'AI Tools',
+    shortDescription: 'Îi dă lui Claude capacitatea de a „vedea" orice video.',
+    details:
+      'Comanda /watch descarcă clipul, extrage cadre, transcrie audio-ul și îi predă lui Claude tot pachetul, ca să poată răspunde despre conținutul video. Bun când vrei rezumatul unui tutorial de 2 ore sau să cauți un moment anume fără să te uiți la tot.',
+    emoji: '📹',
+  },
+  {
+    name: 'ai-job-search',
+    url: 'https://github.com/MadsLorentzen/ai-job-search',
+    category: 'AI Tools',
+    shortDescription: 'Framework de căutare de job care rulează pe mașina ta.',
+    details:
+      'Construit peste Claude Code: evaluează anunțuri, ajustează CV-ul pe fiecare poziție, scrie scrisori de intenție și te pregătește de interviu, cu output în LaTeX. Bun când aplici la multe joburi și nu vrei să rescrii CV-ul manual de fiecare dată.',
+    emoji: '💼',
+  },
+  {
     name: 'llmfit',
     url: 'https://github.com/AlexsJones/llmfit',
     category: 'AI Tools',
@@ -215,6 +242,15 @@ export const tools: Tool[] = [
     emoji: '🔤',
   },
   {
+    name: 'OfficeCLI',
+    url: 'https://github.com/iOfficeAI/OfficeCLI',
+    category: 'Dev Tools',
+    shortDescription: 'Suită Office pentru agenți AI — Word, Excel, PowerPoint din linia de comandă.',
+    details:
+      'Un singur binar care citește, editează și automatizează .docx, .xlsx și .pptx fără să ai Microsoft Office instalat. Apache-2.0, cu skills pentru Claude Code. Bun când vrei ca un agent să genereze rapoarte sau prezentări editabile, nu PDF-uri moarte.',
+    emoji: '📄',
+  },
+  {
     name: 'Awesome Cloudflare',
     url: 'https://github.com/zhuima/awesome-cloudflare',
     category: 'Dev Tools',
@@ -287,6 +323,15 @@ export const tools: Tool[] = [
     details:
       'Build de Chromium fără tracking și fără servicii Google pornite din start, cu blocare de reclame inclusă; există și pentru Windows, și pentru macOS. Bun ca browser zilnic dacă vrei intimitate reală, fără cripto și programe de recompense.',
     emoji: '🎈',
+  },
+  {
+    name: 'Meetily',
+    url: 'https://github.com/Zackriya-Solutions/meetily',
+    category: 'Apps & Utilitare',
+    shortDescription: 'Asistent de ședințe care transcrie și rezumă 100% local.',
+    details:
+      'Transcriere live cu Parakeet/Whisper, separare pe vorbitori și rezumat prin Ollama — totul pe mașina ta, fără cloud, fără abonament. Scris în Rust, are build pentru Windows. Bun pentru minute de ședință când nu ai voie să urci înregistrarea nicăieri.',
+    emoji: '🎧',
   },
   {
     name: 'Palmier Pro',

@@ -4,11 +4,14 @@ import { AnimatePresence, motion } from 'framer-motion';
 
 import { GhostIcon } from '@/components/icons';
 import { ToolCard } from '@/components/ToolCard';
+import type { LocalStatus } from '@/lib/desktop';
 import type { HubTool } from '@/lib/tools';
 
 interface ToolGridProps {
   tools: HubTool[];
   pinned: ReadonlySet<string>;
+  /** Starea locala per tool, cheie = tool.name (gol in browser). */
+  statuses: Record<string, LocalStatus>;
   onTogglePin: (id: string) => void;
   onOpenDetails: (tool: HubTool) => void;
   query: string;
@@ -18,6 +21,7 @@ interface ToolGridProps {
 export function ToolGrid({
   tools,
   pinned,
+  statuses,
   onTogglePin,
   onOpenDetails,
   query,
@@ -67,6 +71,7 @@ export function ToolGrid({
             tool={tool}
             index={index}
             pinned={pinned.has(tool.id)}
+            status={statuses[tool.name]}
             onTogglePin={onTogglePin}
             onOpenDetails={onOpenDetails}
           />

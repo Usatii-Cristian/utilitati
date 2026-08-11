@@ -1,0 +1,194 @@
+{
+  "_readme": [
+    "Cum ruleaza fiecare tool LOCAL. Cheia = campul `name` din data/tools.ts.",
+    "Fisierul e citit si de UI (status pe card) si de procesul Electron (lansare).",
+    "Renderer-ul trimite doar numele; procesul principal cauta comanda aici, deci",
+    "pagina web nu poate cere executarea a orice.",
+    "Variabile expandate la runtime: %ProgramFiles%, %LOCALAPPDATA%, %HUB_TOOLS%.",
+    "kind: app | repo | service | unsupported. Lipsa unei intrari = doar web."
+  ],
+
+  "Brave Browser": {
+    "kind": "app",
+    "exe": [
+      "%ProgramFiles%/BraveSoftware/Brave-Browser/Application/brave.exe",
+      "%LOCALAPPDATA%/BraveSoftware/Brave-Browser/Application/brave.exe"
+    ],
+    "winget": "Brave.Brave"
+  },
+  "Helium": {
+    "kind": "app",
+    "exe": [
+      "%LOCALAPPDATA%/Helium/Application/helium.exe",
+      "%ProgramFiles%/Helium/Application/helium.exe"
+    ],
+    "release": "https://github.com/imputnet/helium-windows/releases/latest"
+  },
+  "Kodi (XBMC)": {
+    "kind": "app",
+    "exe": ["%ProgramFiles%/Kodi/kodi.exe", "%ProgramFiles(x86)%/Kodi/kodi.exe"],
+    "winget": "XBMCFoundation.Kodi"
+  },
+  "Seelen UI": {
+    "kind": "app",
+    "exe": [
+      "%LOCALAPPDATA%/Programs/seelen-ui/seelen-ui.exe",
+      "%LOCALAPPDATA%/seelen-ui/seelen-ui.exe"
+    ],
+    "winget": "Seelen.SeelenUI"
+  },
+  "FileExplorer": {
+    "kind": "app",
+    "exe": ["%LOCALAPPDATA%/Programs/FileExplorer/FileExplorer.exe"],
+    "release": "https://github.com/conaticus/FileExplorer/releases/latest"
+  },
+  "llmfit": {
+    "kind": "app",
+    "exe": ["%HUB_TOOLS%/llmfit/llmfit.exe", "%LOCALAPPDATA%/llmfit/llmfit.exe"],
+    "cli": "llmfit",
+    "release": "https://github.com/AlexsJones/llmfit/releases/latest"
+  },
+
+  "Meetily": {
+    "kind": "app",
+    "exe": [
+      "%LOCALAPPDATA%/Programs/meetily/meetily.exe",
+      "%ProgramFiles%/Meetily/meetily.exe"
+    ],
+    "release": "https://github.com/Zackriya-Solutions/meetily/releases/latest"
+  },
+  "OfficeCLI": {
+    "kind": "app",
+    "exe": ["%HUB_TOOLS%/officecli/officecli.exe"],
+    "cli": "officecli",
+    "release": "https://github.com/iOfficeAI/OfficeCLI/releases/latest"
+  },
+
+  "Penpot": {
+    "kind": "service",
+    "url": "http://localhost:9001",
+    "dir": "%HUB_TOOLS%/penpot",
+    "clone": "https://github.com/penpot/penpot.git",
+    "command": "docker",
+    "args": ["compose", "-p", "penpot", "-f", "docker/images/docker-compose.yaml", "up", "-d"],
+    "requires": "docker"
+  },
+  "ImageMagick WebUI": {
+    "kind": "service",
+    "url": "http://localhost:8080",
+    "dir": "%HUB_TOOLS%/imagemagick-webui",
+    "clone": "https://github.com/PrzemekSkw/imagemagick-webui.git",
+    "command": "docker",
+    "args": ["compose", "up", "-d"],
+    "requires": "docker"
+  },
+  "Fooocus": {
+    "kind": "service",
+    "url": "http://127.0.0.1:7865",
+    "dir": "%HUB_TOOLS%/Fooocus",
+    "clone": "https://github.com/lllyasviel/Fooocus.git",
+    "command": "python",
+    "args": ["entry_with_update.py"],
+    "warn": "Fara GPU dedicat (ai Intel UHD) genereaza extrem de lent sau deloc."
+  },
+  "OpenLLM": {
+    "kind": "service",
+    "url": "http://localhost:3000",
+    "dir": "%HUB_TOOLS%/openllm",
+    "setup": "pip install openllm",
+    "command": "openllm",
+    "args": ["serve"],
+    "warn": "Fara GPU dedicat modelele mari nu sunt practicabile."
+  },
+  "Social Analyzer": {
+    "kind": "service",
+    "url": "http://localhost:9005",
+    "dir": "%HUB_TOOLS%/social-analyzer",
+    "clone": "https://github.com/qeeqbox/social-analyzer.git",
+    "command": "npm",
+    "args": ["start"]
+  },
+
+  "Whisper": {
+    "kind": "repo",
+    "dir": "%HUB_TOOLS%/whisper",
+    "clone": "https://github.com/openai/whisper.git",
+    "setup": "pip install -U openai-whisper",
+    "cli": "whisper",
+    "warn": "Merge pe CPU, dar transcrierea e de cateva ori mai lenta decat timpul real."
+  },
+  "CosyVoice": {
+    "kind": "repo",
+    "dir": "%HUB_TOOLS%/CosyVoice",
+    "clone": "https://github.com/FunAudioLLM/CosyVoice.git",
+    "requires": "docker",
+    "warn": "Cere GPU + Docker; pe masina asta nu e practicabil."
+  },
+  "AutoSubs": {
+    "kind": "repo",
+    "dir": "%HUB_TOOLS%/auto-subs",
+    "clone": "https://github.com/tmoroney/auto-subs.git",
+    "release": "https://github.com/tmoroney/auto-subs/releases/latest"
+  },
+  "Remove-AI-Watermarks": {
+    "kind": "repo",
+    "dir": "%HUB_TOOLS%/remove-ai-watermarks",
+    "clone": "https://github.com/wiltodelta/remove-ai-watermarks.git"
+  },
+  "Hermes Agent": {
+    "kind": "repo",
+    "dir": "%HUB_TOOLS%/hermes-agent",
+    "clone": "https://github.com/NousResearch/hermes-agent.git",
+    "setup": "pip install -r requirements.txt"
+  },
+  "Tesseract.js": {
+    "kind": "repo",
+    "dir": "%HUB_TOOLS%/tesseract.js",
+    "clone": "https://github.com/naptha/tesseract.js.git",
+    "setup": "npm install"
+  },
+  "Colibri": {
+    "kind": "repo",
+    "dir": "%HUB_TOOLS%/colibri",
+    "clone": "https://github.com/JustVugg/colibri.git",
+    "setup": "make",
+    "warn": "Motorul e ~12 MB, dar modelul MoE ocupa zeci de GB pe disc."
+  },
+  "claude-video": {
+    "kind": "repo",
+    "dir": "%HUB_TOOLS%/claude-video",
+    "clone": "https://github.com/bradautomates/claude-video.git",
+    "setup": "pip install -r requirements.txt"
+  },
+  "ai-job-search": {
+    "kind": "repo",
+    "dir": "%HUB_TOOLS%/ai-job-search",
+    "clone": "https://github.com/MadsLorentzen/ai-job-search.git",
+    "setup": "npm install"
+  },
+  "500 AI Agents Projects": {
+    "kind": "repo",
+    "dir": "%HUB_TOOLS%/500-AI-Agents-Projects",
+    "clone": "https://github.com/ashishpatel26/500-AI-Agents-Projects.git"
+  },
+  "Awesome Free Apps": {
+    "kind": "repo",
+    "dir": "%HUB_TOOLS%/awesome-free-apps",
+    "clone": "https://github.com/Axorax/awesome-free-apps.git"
+  },
+  "Awesome Cloudflare": {
+    "kind": "repo",
+    "dir": "%HUB_TOOLS%/awesome-cloudflare",
+    "clone": "https://github.com/zhuima/awesome-cloudflare.git"
+  },
+  "Android Architecture Samples": {
+    "kind": "repo",
+    "dir": "%HUB_TOOLS%/architecture-samples",
+    "clone": "https://github.com/android/architecture-samples.git"
+  },
+
+  "Palmier Pro": {
+    "kind": "unsupported",
+    "reason": "Doar macOS (Swift). Pe Windows foloseste forkul OpenTake."
+  }
+}
