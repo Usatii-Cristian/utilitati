@@ -18,6 +18,8 @@ interface ToolCardProps {
   status?: LocalStatus;
   onTogglePin: (id: string) => void;
   onOpenDetails: (tool: HubTool) => void;
+  /** Re-verifica starea locala dupa o lansare reusita (ex. serviciu pornit). */
+  onAfterLaunch?: () => void;
 }
 
 function Favicon({ tool }: { tool: HubTool }) {
@@ -68,28 +70,41 @@ export function ToolCard({
   status,
   onTogglePin,
   onOpenDetails,
+  onAfterLaunch,
 }: ToolCardProps) {
   const reduceMotion = useReducedMotion();
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const accent = accentFor(tool.category);
 
-  const label = statusLabel(status);
+  // Cat timp pornim ceva, eticheta arata starea reala, nu cea de dinainte.
+  const label = busy ? { text: 'pornesc…', live: true } : statusLabel(status);
   const canLaunch = Boolean(status?.ready) && status?.kind !== 'unsupported';
 
   /** Click pe card: lanseaza local daca se poate, altfel deschide pagina. */
   const activate = useCallback(async () => {
+    if (busy) return; // un serviciu poate dura ~15s; nu pornim de doua ori
     setError(null);
+
     if (!canLaunch) {
       openUrl(tool.url);
       return;
     }
-    const result = await launchTool(tool.name);
-    if (!result.ok) {
-      setError(result.error ?? 'Nu am putut lansa.');
-      window.setTimeout(() => setError(null), 4000);
+
+    setBusy(true);
+    try {
+      const result = await launchTool(tool.name);
+      if (result.ok) {
+        onAfterLaunch?.();
+      } else {
+        setError(result.error ?? 'Nu am putut lansa.');
+        window.setTimeout(() => setError(null), 4000);
+      }
+    } finally {
+      setBusy(false);
     }
-  }, [canLaunch, tool.name, tool.url]);
+  }, [busy, canLaunch, onAfterLaunch, tool.name, tool.url]);
 
   const handleCopy = useCallback(
     async (event: ReactMouseEvent) => {
@@ -160,7 +175,10 @@ export function ToolCard({
           {canLaunch && (
             <span
               aria-hidden
-              className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-ink-950"
+              className={[
+                'absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-ink-950',
+                busy ? 'animate-pulse' : '',
+              ].join(' ')}
               style={{ background: accent }}
             />
           )}

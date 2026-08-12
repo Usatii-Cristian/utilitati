@@ -54,6 +54,32 @@ try {
 // Aceleasi functii pe care le verific cu `node desktop/detect.js` — fara duplicat.
 const { detectAll, expand, firstExisting, findOnPath, appxInstalled, probe } = require('./detect.js');
 
+/** Docker Desktop nu-si pune binarul in PATH pana la o sesiune noua. */
+const DOCKER_EXE = path.join(
+  process.env.ProgramFiles || 'C:\\Program Files',
+  'Docker',
+  'Docker',
+  'resources',
+  'bin',
+  'docker.exe',
+);
+
+function dockerBinary(target) {
+  return target.command === 'docker' && fs.existsSync(DOCKER_EXE) ? DOCKER_EXE : null;
+}
+
+/** Docker e instalat SI daemonul raspunde? */
+function dockerReady() {
+  const docker = findOnPath('docker') || (fs.existsSync(DOCKER_EXE) ? DOCKER_EXE : null);
+  if (!docker) return false;
+  const result = require('node:child_process').spawnSync(docker, ['info'], {
+    encoding: 'utf8',
+    windowsHide: true,
+    timeout: 8000,
+  });
+  return result.status === 0;
+}
+
 // ── Lansare ─────────────────────────────────────────────────────────────────
 
 async function launch(name) {
@@ -94,17 +120,36 @@ async function launch(name) {
       return { ok: true, action: 'opened-running-service', url: target.url };
     }
 
+    // Serviciile instalate ca pachet (pip) nu au folder de surse — au doar un
+    // executabil. Le pornim din directorul lor daca exista, altfel din HOME.
+    const binary = firstExisting(target.exe) || (target.cli ? findOnPath(target.cli) : null);
     const dir = target.dir ? expand(target.dir) : null;
-    if (!dir || !fs.existsSync(dir)) {
+
+    if ((!dir || !fs.existsSync(dir)) && !binary) {
       return { ok: false, error: 'Serviciul nu e instalat inca.' };
     }
 
-    const command = findOnPath(target.command) || target.command;
-    const child = spawn(command, target.args ?? [], {
-      cwd: dir,
+    // Verificam dependintele INAINTE de spawn: altfel comanda esueaza tacut si
+    // am astepta degeaba 15 secunde ca sa raportam un timeout care nu spune nimic.
+    if (target.requires === 'docker' && !dockerReady()) {
+      return { ok: false, error: 'Pornește Docker Desktop mai întâi, apoi reîncearcă.' };
+    }
+
+    const resolved = binary || findOnPath(target.command) || dockerBinary(target);
+    const command = resolved || target.command;
+
+    // Pe Windows, `.cmd`/`.bat` (npm, yarn) NU pot fi pornite fara shell, dar cu
+    // shell comanda e re-parsata de cmd.exe si o cale cu spatii ("C:\Program
+    // Files\Docker\...") s-ar rupe la primul spatiu. Deci: shell doar cand chiar
+    // e nevoie, si atunci calea se ghilimeleaza.
+    const needsShell = /\.(cmd|bat)$/i.test(command) || !path.isAbsolute(command);
+    const spawnCommand = needsShell && /\s/.test(command) ? `"${command}"` : command;
+
+    const child = spawn(spawnCommand, target.args ?? [], {
+      cwd: dir && fs.existsSync(dir) ? dir : process.env.USERPROFILE,
       detached: true,
       stdio: 'ignore',
-      shell: process.platform === 'win32',
+      shell: needsShell,
     });
     child.unref();
 

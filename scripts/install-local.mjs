@@ -10,7 +10,15 @@
  */
 
 import { execFile, spawnSync } from 'node:child_process';
-import { createWriteStream, existsSync, mkdirSync, readFileSync, renameSync } from 'node:fs';
+import {
+  createWriteStream,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  rmSync,
+} from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
@@ -117,7 +125,28 @@ const RELEASES = {
     match: (n) => n === 'AutoSubs-windows-x86_64.exe',
     kind: 'nsis',
   },
+  FileExplorer: {
+    repo: 'conaticus/FileExplorer',
+    // Ultimul release nu are niciun fisier atasat; ultimul CU binar de Windows
+    // e mai vechi, de-aia cautam in tot istoricul, nu doar in /releases/latest.
+    match: (n) => n.startsWith('file-explorer_') && n.endsWith('_x64_en-US.msi'),
+    kind: 'msi',
+  },
 };
+
+/** Primul release (de la cel mai nou catre vechi) care are un asset potrivit. */
+async function findAsset(repo, match) {
+  const res = await fetch(`https://api.github.com/repos/${repo}/releases?per_page=30`, {
+    headers: { 'User-Agent': 'link-hub-installer' },
+  });
+  const releases = await res.json();
+  if (!Array.isArray(releases)) return null;
+  for (const release of releases) {
+    const asset = (release.assets ?? []).find((a) => match(a.name));
+    if (asset) return { asset, tag: release.tag_name };
+  }
+  return null;
+}
 
 async function download(url, dest) {
   mkdirSync(dirname(dest), { recursive: true });
@@ -131,21 +160,35 @@ async function download(url, dest) {
   renameSync(tmp, dest);
 }
 
+/**
+ * Multe arhive contin un singur folder cu numele si VERSIUNEA inauntru
+ * (ex. llmfit-v1.1.9-x86_64-pc-windows-msvc/llmfit.exe). Daca am lasa asa,
+ * calea din local-targets.json s-ar strica la fiecare versiune noua. Urcam
+ * continutul cu un nivel, ca sa avem mereu <dest>/llmfit.exe.
+ */
+function flatten(dest) {
+  const entries = readdirSync(dest, { withFileTypes: true });
+  if (entries.length !== 1 || !entries[0].isDirectory()) return;
+
+  const inner = join(dest, entries[0].name);
+  for (const file of readdirSync(inner)) {
+    renameSync(join(inner, file), join(dest, file));
+  }
+  rmSync(inner, { recursive: true, force: true });
+}
+
 async function installReleases() {
   const cache = join(HUB_TOOLS, '_installers');
   mkdirSync(cache, { recursive: true });
 
   for (const [name, spec] of Object.entries(RELEASES)) {
     try {
-      const res = await fetch(`https://api.github.com/repos/${spec.repo}/releases/latest`, {
-        headers: { 'User-Agent': 'link-hub-installer' },
-      });
-      const release = await res.json();
-      const asset = (release.assets ?? []).find((a) => spec.match(a.name));
-      if (!asset) {
-        log('!', name, 'niciun asset de Windows in ultimul release');
+      const found = await findAsset(spec.repo, spec.match);
+      if (!found) {
+        log('!', name, 'niciun asset de Windows in ultimele 30 de release-uri');
         continue;
       }
+      const { asset, tag } = found;
 
       if (spec.kind === 'binary') {
         if (existsSync(spec.dest)) {
@@ -167,13 +210,14 @@ async function installReleases() {
           '-Command',
           `Expand-Archive -LiteralPath '${local}' -DestinationPath '${spec.dest}' -Force`,
         ]);
+        flatten(spec.dest);
         log('+', name, `dezarhivat in ${spec.dest}`);
       } else if (spec.kind === 'msi') {
         const r = spawnSync('msiexec', ['/i', local, '/qn', '/norestart'], { windowsHide: true });
-        log(r.status === 0 ? '+' : '!', name, r.status === 0 ? 'instalat (msi)' : `msi cod ${r.status}`);
+        log(r.status === 0 ? '+' : '!', name, r.status === 0 ? `instalat (msi ${tag})` : `msi cod ${r.status}`);
       } else if (spec.kind === 'nsis') {
         const r = spawnSync(local, ['/S'], { windowsHide: true });
-        log(r.status === 0 ? '+' : '!', name, r.status === 0 ? 'instalat (nsis)' : `nsis cod ${r.status}`);
+        log(r.status === 0 ? '+' : '!', name, r.status === 0 ? `instalat (nsis ${tag})` : `nsis cod ${r.status}`);
       }
     } catch (error) {
       log('!', name, `esuat: ${error.message}`);

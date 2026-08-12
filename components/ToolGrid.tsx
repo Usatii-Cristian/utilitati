@@ -14,6 +14,7 @@ interface ToolGridProps {
   statuses: Record<string, LocalStatus>;
   onTogglePin: (id: string) => void;
   onOpenDetails: (tool: HubTool) => void;
+  onAfterLaunch?: () => void;
   query: string;
   onReset: () => void;
 }
@@ -24,6 +25,7 @@ export function ToolGrid({
   statuses,
   onTogglePin,
   onOpenDetails,
+  onAfterLaunch,
   query,
   onReset,
 }: ToolGridProps) {
@@ -74,6 +76,7 @@ export function ToolGrid({
             status={statuses[tool.name]}
             onTogglePin={onTogglePin}
             onOpenDetails={onOpenDetails}
+            onAfterLaunch={onAfterLaunch}
           />
         ))}
       </AnimatePresence>

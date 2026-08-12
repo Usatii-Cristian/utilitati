@@ -5,16 +5,21 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { ArrowUpRightIcon, CheckIcon, CloseIcon, CopyIcon } from '@/components/icons';
 import { accentFor } from '@/data/tools';
+import { launchTool, openUrl, type LocalStatus } from '@/lib/desktop';
 import { copyToClipboard } from '@/lib/storage';
 import { faviconUrl, type HubTool } from '@/lib/tools';
 
 interface DetailsPopoverProps {
   tool: HubTool | null;
+  /** Starea locala a tool-ului (doar in aplicatia desktop). */
+  status?: LocalStatus;
+  onAfterLaunch?: () => void;
   onClose: () => void;
 }
 
-export function DetailsPopover({ tool, onClose }: DetailsPopoverProps) {
+export function DetailsPopover({ tool, status, onAfterLaunch, onClose }: DetailsPopoverProps) {
   const [copied, setCopied] = useState(false);
+  const [busy, setBusy] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
   // ESC inchide, iar scroll-ul din spate se blocheaza cat timp modalul e deschis.
@@ -52,6 +57,26 @@ export function DetailsPopover({ tool, onClose }: DetailsPopoverProps) {
   }, [tool]);
 
   const accent = tool ? accentFor(tool.category) : '#c9f24e';
+  const canLaunch = Boolean(status?.ready) && status?.kind !== 'unsupported';
+
+  /** Acelasi comportament ca pe card: local daca se poate, altfel pagina web. */
+  const handlePrimary = useCallback(async () => {
+    if (!tool || busy) return;
+    if (!canLaunch) {
+      openUrl(tool.url);
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await launchTool(tool.name);
+      if (result.ok) {
+        onAfterLaunch?.();
+        onClose();
+      }
+    } finally {
+      setBusy(false);
+    }
+  }, [busy, canLaunch, onAfterLaunch, onClose, tool]);
 
   return (
     <AnimatePresence>
@@ -136,17 +161,23 @@ export function DetailsPopover({ tool, onClose }: DetailsPopoverProps) {
               <p className="text-[13px] leading-relaxed text-chalk-300">{tool.details}</p>
             </div>
 
+            {status?.warn && (
+              <p className="relative mt-3 rounded-lg border border-amber-400/25 bg-amber-400/[0.06] px-3 py-2 text-[12px] leading-relaxed text-amber-200/90">
+                {status.warn}
+              </p>
+            )}
+
             <div className="relative mt-4 flex flex-col gap-2 sm:flex-row">
-              <a
-                href={tool.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-[13px] font-semibold text-ink-950 transition-transform duration-200 active:scale-[0.98]"
+              <button
+                type="button"
+                onClick={handlePrimary}
+                disabled={busy}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-[13px] font-semibold text-ink-950 transition-transform duration-200 active:scale-[0.98] disabled:opacity-70"
                 style={{ background: accent, boxShadow: `0 10px 34px -14px ${accent}` }}
               >
-                Deschide
-                <ArrowUpRightIcon className="h-4 w-4" strokeWidth={2.2} />
-              </a>
+                {busy ? 'Pornesc…' : canLaunch ? 'Lansează local' : 'Deschide'}
+                {!busy && <ArrowUpRightIcon className="h-4 w-4" strokeWidth={2.2} />}
+              </button>
               <button
                 type="button"
                 onClick={handleCopy}

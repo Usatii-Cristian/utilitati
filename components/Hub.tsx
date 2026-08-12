@@ -41,7 +41,7 @@ export function Hub() {
   const [restored, setRestored] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const { isDesktop, statuses } = useLocalStatus();
+  const { isDesktop, statuses, refresh } = useLocalStatus();
 
   // ── Restaurare din localStorage (inainte de primul paint dupa hidratare) ────
   useIsomorphicLayoutEffect(() => {
@@ -191,6 +191,7 @@ export function Hub() {
           statuses={statuses}
           onTogglePin={togglePin}
           onOpenDetails={setActiveTool}
+          onAfterLaunch={refresh}
           query={query}
           onReset={reset}
         />
@@ -216,7 +217,12 @@ export function Hub() {
         </p>
       </footer>
 
-      <DetailsPopover tool={activeTool} onClose={() => setActiveTool(null)} />
+      <DetailsPopover
+        tool={activeTool}
+        status={activeTool ? statuses[activeTool.name] : undefined}
+        onAfterLaunch={refresh}
+        onClose={() => setActiveTool(null)}
+      />
     </div>
   );
 }

@@ -55,21 +55,43 @@ function findOnPath(command) {
   return null;
 }
 
-/** Verifica un pachet MSIX dupa PackageFamilyName (fara acces la WindowsApps). */
+// ── Pachete MSIX ────────────────────────────────────────────────────────────
+//
+// `Get-AppxPackage` costa ~1.1s. Detectarea ruleaza la fiecare focus pe fereastra,
+// deci fara cache am porni un proces PowerShell la fiecare alt-tab. Citim lista
+// intreaga o singura data si o tinem 60s — pachetele nu apar/dispar mai des.
+
+const APPX_TTL_MS = 60_000;
+let appxCache = { at: 0, families: null };
+
+function appxFamilies() {
+  if (appxCache.families && Date.now() - appxCache.at < APPX_TTL_MS) return appxCache.families;
+
+  // PowerShell 5.1 nu are -PackageFamilyName pe Get-AppxPackage, deci luam tot.
+  const result = spawnSync(
+    'powershell',
+    ['-NoProfile', '-Command', 'Get-AppxPackage | Select-Object -ExpandProperty PackageFamilyName'],
+    { encoding: 'utf8', windowsHide: true },
+  );
+  const families = new Set(
+    String(result.stdout ?? '')
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean),
+  );
+  appxCache = { at: Date.now(), families };
+  return families;
+}
+
 function appxInstalled(appId) {
   const family = String(appId ?? '').split('!')[0];
   if (!family) return false;
-  // Windows PowerShell 5.1 NU are -PackageFamilyName pe Get-AppxPackage, deci filtram.
-  const result = spawnSync(
-    'powershell',
-    [
-      '-NoProfile',
-      '-Command',
-      `if (Get-AppxPackage | Where-Object { $_.PackageFamilyName -eq '${family}' }) { 'yes' }`,
-    ],
-    { encoding: 'utf8', windowsHide: true },
-  );
-  return /yes/.test(result.stdout ?? '');
+  return appxFamilies().has(family);
+}
+
+/** Forteaza recitirea listei de pachete MSIX (dupa o instalare noua). */
+function clearCaches() {
+  appxCache = { at: 0, families: null };
 }
 
 /** Serviciul raspunde deja pe URL-ul lui? */
@@ -95,56 +117,81 @@ function probe(url, timeoutMs = 900) {
   });
 }
 
-async function detectAll(targets) {
-  const result = {};
+// ── Starea unui singur tool ─────────────────────────────────────────────────
 
-  for (const [name, target] of Object.entries(targets)) {
-    if (name.startsWith('_')) continue;
-    const entry = { kind: target.kind, ready: false };
-    if (target.warn) entry.warn = target.warn;
+async function detectOne(target) {
+  const entry = { kind: target.kind, ready: false };
+  if (target.warn) entry.warn = target.warn;
 
-    if (target.kind === 'unsupported') {
-      entry.reason = target.reason;
-      result[name] = entry;
-      continue;
-    }
-
-    if (target.kind === 'app') {
-      const exe = firstExisting(target.exe) || findOnPath(target.cli);
-      entry.ready = Boolean(exe);
-      if (exe) entry.path = exe;
-      else entry.hint = target.winget ? `winget install ${target.winget}` : target.release;
-    }
-
-    if (target.kind === 'appx') {
-      entry.ready = appxInstalled(target.appId);
-      entry.path = target.appId;
-      if (!entry.ready && target.winget) entry.hint = `winget install ${target.winget}`;
-    }
-
-    if (target.kind === 'repo') {
-      const dir = expand(target.dir);
-      entry.ready = fs.existsSync(dir);
-      entry.path = dir;
-      if (!entry.ready) entry.hint = `git clone ${target.clone}`;
-    }
-
-    if (target.kind === 'service') {
-      const dir = target.dir ? expand(target.dir) : null;
-      entry.url = target.url;
-      if (dir) entry.path = dir;
-      entry.running = await probe(target.url);
-      entry.ready = entry.running || (dir ? fs.existsSync(dir) : false);
-      if (!entry.ready) entry.hint = target.clone ? `git clone ${target.clone}` : target.setup;
-    }
-
-    result[name] = entry;
+  if (target.kind === 'unsupported') {
+    entry.reason = target.reason;
+    return entry;
   }
 
-  return result;
+  if (target.kind === 'app') {
+    const exe = firstExisting(target.exe) || findOnPath(target.cli);
+    entry.ready = Boolean(exe);
+    if (exe) entry.path = exe;
+    else entry.hint = target.winget ? `winget install ${target.winget}` : target.release;
+    return entry;
+  }
+
+  if (target.kind === 'appx') {
+    entry.ready = appxInstalled(target.appId);
+    entry.path = target.appId;
+    if (!entry.ready && target.winget) entry.hint = `winget install ${target.winget}`;
+    return entry;
+  }
+
+  if (target.kind === 'repo') {
+    const dir = expand(target.dir);
+    entry.ready = fs.existsSync(dir);
+    entry.path = dir;
+    if (!entry.ready) entry.hint = `git clone ${target.clone}`;
+    return entry;
+  }
+
+  if (target.kind === 'service') {
+    const dir = target.dir ? expand(target.dir) : null;
+    entry.url = target.url;
+    if (dir) entry.path = dir;
+    entry.running = await probe(target.url);
+
+    // Un serviciu e "gata" daca ruleaza deja, daca avem sursele clonate, SAU
+    // daca a fost instalat ca pachet — fie pe o cale explicita (pip pune
+    // executabilele in Scripts/, care nu e in PATH), fie gasit in PATH.
+    const binary = firstExisting(target.exe) || (target.cli ? findOnPath(target.cli) : null);
+    if (binary && !entry.path) entry.path = binary;
+    entry.ready = entry.running || Boolean(binary) || (dir ? fs.existsSync(dir) : false);
+
+    if (!entry.ready) entry.hint = target.clone ? `git clone ${target.clone}` : target.setup;
+    return entry;
+  }
+
+  return entry;
 }
 
-module.exports = { detectAll, expand, firstExisting, findOnPath, appxInstalled, probe, HUB_TOOLS };
+/** Starea tuturor tool-urilor. Sondele de retea ruleaza in paralel. */
+async function detectAll(targets) {
+  const pairs = await Promise.all(
+    Object.entries(targets)
+      .filter(([name]) => !name.startsWith('_'))
+      .map(async ([name, target]) => [name, await detectOne(target)]),
+  );
+  return Object.fromEntries(pairs);
+}
+
+module.exports = {
+  detectAll,
+  detectOne,
+  clearCaches,
+  expand,
+  firstExisting,
+  findOnPath,
+  appxInstalled,
+  probe,
+  HUB_TOOLS,
+};
 
 // Rulat direct: tipareste tabelul de stare.
 if (require.main === module) {
@@ -152,6 +199,7 @@ if (require.main === module) {
   const targets = JSON.parse(fs.readFileSync(file, 'utf8'));
   delete targets._readme;
 
+  const started = Date.now();
   detectAll(targets).then((statuses) => {
     let ready = 0;
     for (const [name, status] of Object.entries(statuses)) {
@@ -162,5 +210,6 @@ if (require.main === module) {
       );
     }
     console.log(`\n${ready} / ${Object.keys(statuses).length} gata de lansat local`);
+    console.log(`detectare in ${Date.now() - started} ms`);
   });
 }

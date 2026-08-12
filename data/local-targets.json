@@ -38,8 +38,12 @@
   },
   "FileExplorer": {
     "kind": "app",
-    "exe": ["%LOCALAPPDATA%/Programs/FileExplorer/FileExplorer.exe"],
-    "release": "https://github.com/conaticus/FileExplorer/releases/latest"
+    "_nota": "Ultimul release nu are binare; instalat din v1.0.13, ultimul cu .msi de Windows",
+    "exe": [
+      "%ProgramFiles%/file-explorer/file-explorer.exe",
+      "%LOCALAPPDATA%/Programs/FileExplorer/FileExplorer.exe"
+    ],
+    "release": "https://github.com/conaticus/FileExplorer/releases"
   },
   "llmfit": {
     "kind": "app",
@@ -88,15 +92,22 @@
     "url": "http://127.0.0.1:7865",
     "dir": "%HUB_TOOLS%/Fooocus",
     "clone": "https://github.com/lllyasviel/Fooocus.git",
-    "command": "python",
+    "_nota": "`python` pe acest PC e doar aliasul Microsoft Store (nefunctional); lansatorul real e `py`",
+    "command": "py",
     "args": ["entry_with_update.py"],
     "warn": "Fara GPU dedicat (ai Intel UHD) genereaza extrem de lent sau deloc."
   },
   "OpenLLM": {
     "kind": "service",
     "url": "http://localhost:3000",
-    "dir": "%HUB_TOOLS%/openllm",
-    "setup": "pip install openllm",
+    "_nota": "Instalat prin pip. Scripts/ al Python-ului NU e in PATH, deci dam calea explicit.",
+    "exe": [
+      "%LOCALAPPDATA%/Programs/Python/Python312/Scripts/openllm.exe",
+      "%LOCALAPPDATA%/Programs/Python/Python313/Scripts/openllm.exe",
+      "%APPDATA%/Python/Python312/Scripts/openllm.exe"
+    ],
+    "cli": "openllm",
+    "setup": "py -m pip install openllm",
     "command": "openllm",
     "args": ["serve"],
     "warn": "Fara GPU dedicat modelele mari nu sunt practicabile."
