@@ -112,6 +112,17 @@
     "args": ["serve"],
     "warn": "Fara GPU dedicat modelele mari nu sunt practicabile."
   },
+  "OpenCut": {
+    "kind": "service",
+    "url": "http://localhost:3000",
+    "_nota": "Versiunea `classic` — rescrierea din OpenCut-app/OpenCut nu are subtitrari. Asculta pe 0.0.0.0 pentru acces prin Tailscale.",
+    "dir": "%HUB_TOOLS%/opencut-classic/apps/web",
+    "clone": "https://github.com/opencut-app/opencut-classic.git",
+    "exe": ["%LOCALAPPDATA%/Microsoft/WinGet/Packages/Oven-sh.Bun_Microsoft.Winget.Source_8wekyb3d8bbwe/bun-windows-x64/bun.exe"],
+    "cli": "bun",
+    "command": "bun",
+    "args": ["run", "dev:host"]
+  },
   "Social Analyzer": {
     "kind": "service",
     "url": "http://localhost:9005",
